@@ -28,14 +28,16 @@
                 <?php endif; ?>
             </div>
             <div class="card-body">
+                <!-- Form Pencarian -->
                 <form action="<?= base_url; ?>/petugas/cari" method="post">
+                    <input type="hidden" name="csrf_token" value="<?= isset($_SESSION['csrf_token']) ? htmlspecialchars($_SESSION['csrf_token']) : ''; ?>">
                     <div class="row mb-3">
                         <div class="col-lg-6">
                             <div class="input-group">
-                                <input type="text" class="form-control" placeholder="Cari Petugas..." name="key">
+                                <input type="text" class="form-control" placeholder="Cari Petugas..." name="key" autocomplete="off" required>
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-secondary" type="submit">Cari Data</button>
-                                    <a class="btn btn-outline-danger" href="<?= base_url; ?>/petugas">Reset</a>
+                                    <a class="btn btn-outline-danger" href="<?= base_url; ?>/petugas/reset">Reset</a>
                                 </div>
                             </div>
                         </div>
@@ -51,7 +53,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        <?php $no = 1; ?>
+                        <?php $no = ($data['currentPage'] - 1) * 10 + 1; ?>
                         <?php foreach ($data['petugas'] as $row) : ?>
                             <tr>
                                 <td><?= $no; ?></td>
@@ -64,12 +66,35 @@
                             <?php $no++; endforeach; ?>
                     </tbody>
                 </table>
+                <!-- Pagination -->
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        <?php if (isset($data['currentPage']) && $data['currentPage'] > 1) : ?>
+                            <li class="page-item">
+                                <a class="page-link" href="<?= base_url; ?>/petugas?page=<?= $data['currentPage'] - 1; ?><?= isset($data['key']) ? '&key=' . urlencode($data['key']) : ''; ?>" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
+
+                        <?php if (isset($data['totalPages'])) : ?>
+                            <?php for ($i = 1; $i <= $data['totalPages']; $i++) : ?>
+                                <li class="page-item <?= (isset($data['currentPage']) && $i == $data['currentPage']) ? 'active' : ''; ?>">
+                                    <a class="page-link" href="<?= base_url; ?>/petugas?page=<?= $i; ?><?= isset($data['key']) ? '&key=' . urlencode($data['key']) : ''; ?>"><?= $i; ?></a>
+                                </li>
+                            <?php endfor; ?>
+                        <?php endif; ?>
+
+                        <?php if (isset($data['currentPage']) && isset($data['totalPages']) && $data['currentPage'] < $data['totalPages']) : ?>
+                            <li class="page-item">
+                                <a class="page-link" href="<?= base_url; ?>/petugas?page=<?= $data['currentPage'] + 1; ?><?= isset($data['key']) ? '&key=' . urlencode($data['key']) : ''; ?>" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        <?php endif; ?>
+                    </ul>
+                </nav>
             </div>
-            <!-- /.card-body -->
-            <div class="card-footer">
-                
-            </div>
-            <!-- /.card-footer-->
         </div>
         <!-- /.card -->
 

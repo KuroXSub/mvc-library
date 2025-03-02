@@ -1,30 +1,27 @@
-<!-- Content Wrapper. Contains page content -->
 <div class="content-wrapper">
-    <!-- Content Header (Page header) -->
     <section class="content-header">
         <div class="container-fluid">
             <div class="row mb-2">
-                <div class="col-sm-6">
+                <div class="col-sm-12 text-center">
                     <h1>Dashboard</h1>
                 </div>
             </div>
-        </div><!-- /.container-fluid -->
+        </div>
     </section>
-
-    <!-- Main content -->
     <section class="content">
-        <!-- Info boxes -->
-        <!-- Default box -->
-        <div class="card">
-            <div class="card-body">
-                <h2>Selamat datang di halaman Library Management!</h2>
-            </div>
-            <div class="card-footer">
-                
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h2>Selamat datang di halaman Library Management!</h2>
+                    </div>
+                    <div class="card-footer">
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="row">
+        <div class="row justify-content-center">
             <div class="col-12 col-sm-6 col-md-3">
                 <div class="info-box">
                     <span class="info-box-icon bg-info elevation-1"><i class="fas fa-list"></i></span>
