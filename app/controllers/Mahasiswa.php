@@ -13,8 +13,33 @@ class Mahasiswa extends Controller {
     public function index()
     {
         $data['title'] = 'Data Mahasiswa';
-        $data['mahasiswa'] = $this->model('MahasiswaModel')->getAllMahasiswa();
-        #$data['jumlah_mahasiswa'] = $this->model('MahasiswaModel')->getJumlahMahasiswa();
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Cek apakah ada kata kunci pencarian di session
+        $key = $_SESSION['search_key'] ?? '';
+
+        if (!empty($key)) {
+            // Ambil data mahasiswa hasil pencarian dengan pagination
+            $data['mahasiswa'] = $this->model('MahasiswaModel')->cariMahasiswaPagination($key, $limit, $offset);
+
+            // Hitung total data hasil pencarian untuk pagination
+            $totalData = $this->model('MahasiswaModel')->getJumlahCariMahasiswa($key);
+        } else {
+            // Ambil semua data mahasiswa dengan pagination
+            $data['mahasiswa'] = $this->model('MahasiswaModel')->getMahasiswaPagination($limit, $offset);
+
+            // Hitung total data mahasiswa untuk pagination
+            $totalData = $this->model('MahasiswaModel')->getJumlahMahasiswa();
+        }
+
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
         $this->view('templates/header', $data);
         $this->view('templates/sidebar', $data);
         $this->view('mahasiswa/index', $data);
@@ -24,13 +49,38 @@ class Mahasiswa extends Controller {
     public function cari()
     {
         $key = htmlspecialchars($_POST['key'] ?? '');
+        $_SESSION['search_key'] = $key; // Simpan kata kunci pencarian di session
+
         $data['title'] = 'Data Mahasiswa';
-        $data['mahasiswa'] = $this->model('MahasiswaModel')->cariMahasiswa($key);
-        $data['key'] = $key;
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Ambil data mahasiswa hasil pencarian dengan pagination
+        $data['mahasiswa'] = $this->model('MahasiswaModel')->cariMahasiswaPagination($key, $limit, $offset);
+
+        // Hitung total data hasil pencarian untuk pagination
+        $totalData = $this->model('MahasiswaModel')->getJumlahCariMahasiswa($key);
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
         $this->view('templates/header', $data);
         $this->view('templates/sidebar', $data);
         $this->view('mahasiswa/index', $data);
         $this->view('templates/footer');
+    }
+
+    public function reset()
+    {
+        // Hapus session pencarian
+        unset($_SESSION['search_key']);
+
+        // Redirect ke halaman mahasiswa
+        header('location: ' . base_url . '/mahasiswa');
+        exit;
     }
 
     public function edit($id)
@@ -94,7 +144,7 @@ class Mahasiswa extends Controller {
     }
 
     public function updateMahasiswa()
-    {	
+    {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
                 Flasher::setMessage('Error', 'Token CSRF tidak valid.', 'danger');
@@ -110,15 +160,29 @@ class Mahasiswa extends Controller {
                 'alamat' => htmlspecialchars($_POST['alamat'] ?? '')
             ];
 
-            if ($this->model('MahasiswaModel')->updateDataMahasiswa($data) > 0) {
-                Flasher::setMessage('Berhasil', 'diupdate', 'success');
-                header('location: ' . base_url . '/mahasiswa');
-                exit;			
+            // Ambil data mahasiswa saat ini
+            $mahasiswaSaatIni = $this->model('MahasiswaModel')->getMahasiswaById($data['id']);
+
+            // Cek apakah ada perubahan data
+            if (
+                $mahasiswaSaatIni['nim'] === $data['nim'] &&
+                $mahasiswaSaatIni['nama'] === $data['nama'] &&
+                $mahasiswaSaatIni['jurusan'] === $data['jurusan'] &&
+                $mahasiswaSaatIni['alamat'] === $data['alamat']
+            ) {
+                // Jika tidak ada perubahan, tampilkan pesan berhasil
+                Flasher::setMessage('Berhasil', 'diupdate (tidak ada perubahan)', 'success');
             } else {
-                Flasher::setMessage('Gagal', 'diupdate', 'danger');
-                header('location: ' . base_url . '/mahasiswa');
-                exit;	
+                // Jika ada perubahan, lakukan update
+                if ($this->model('MahasiswaModel')->updateDataMahasiswa($data) > 0) {
+                    Flasher::setMessage('Berhasil', 'diupdate', 'success');
+                } else {
+                    Flasher::setMessage('Gagal', 'diupdate', 'danger');
+                }
             }
+
+            header('location: ' . base_url . '/mahasiswa');
+            exit;
         }
     }
 
@@ -126,6 +190,12 @@ class Mahasiswa extends Controller {
     {
         if (!is_numeric($id)) {
             Flasher::setMessage('Error', 'ID tidak valid.', 'danger');
+            header('location: ' . base_url . '/mahasiswa');
+            exit;
+        }
+
+        if ($this->model('MahasiswaModel')->isMahasiswaTerpakai($id)) {
+            Flasher::setMessage('Gagal', 'Mahasiswa tidak dapat dihapus karena terikat dengan data peminjaman.', 'danger');
             header('location: ' . base_url . '/mahasiswa');
             exit;
         }

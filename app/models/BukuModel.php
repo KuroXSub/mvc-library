@@ -54,13 +54,26 @@ class BukuModel {
         return $this->db->rowCount();
     }
 
+    public function isBukuTerpakai($id)
+    {
+        $this->db->query('SELECT COUNT(*) as jumlah FROM peminjaman WHERE buku_id = :id');
+        $this->db->bind('id', intval($id));
+        $result = $this->db->single();
+
+        return $result['jumlah'] > 0;
+    }
+
     public function deleteBuku($id)
     {
-        $this->db->query('DELETE FROM ' . $this->table . ' WHERE id=:id');
-        $this->db->bind('id', intval($id));
-        $this->db->execute();
+        if (!$this->isBukuTerpakai($id)) {
+            $this->db->query('DELETE FROM ' . $this->table . ' WHERE id=:id');
+            $this->db->bind('id', intval($id));
+            $this->db->execute();
 
-        return $this->db->rowCount();
+            return $this->db->rowCount();
+        }
+
+        return 0;
     }
 
     public function cariBuku()
@@ -74,6 +87,39 @@ class BukuModel {
     public function getJumlahBuku()
     {
         $this->db->query('SELECT COUNT(*) as jumlah FROM ' . $this->table);
+        return $this->db->single()['jumlah'];
+    }
+
+    public function getBukuPagination($limit, $offset)
+    {
+        $query = "SELECT buku.*, kategori.nama_kategori FROM buku 
+                JOIN kategori ON kategori.id = buku.kategori_id 
+                LIMIT :limit OFFSET :offset";
+        $this->db->query($query);
+        $this->db->bind('limit', $limit);
+        $this->db->bind('offset', $offset);
+        return $this->db->resultSet();
+    }
+
+    public function cariBukuPagination($key, $limit, $offset)
+    {
+        $query = "SELECT buku.*, kategori.nama_kategori FROM buku 
+                JOIN kategori ON buku.kategori_id = kategori.id 
+                WHERE buku.judul LIKE :key 
+                LIMIT :limit OFFSET :offset";
+        $this->db->query($query);
+        $this->db->bind('key', "%$key%");
+        $this->db->bind('limit', $limit);
+        $this->db->bind('offset', $offset);
+        return $this->db->resultSet();
+    }
+
+    public function getJumlahCariBuku($key)
+    {
+        $query = "SELECT COUNT(*) as jumlah FROM buku 
+                WHERE judul LIKE :key";
+        $this->db->query($query);
+        $this->db->bind('key', "%$key%");
         return $this->db->single()['jumlah'];
     }
 }

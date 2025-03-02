@@ -13,7 +13,33 @@ class Petugas extends Controller {
     public function index()
     {
         $data['title'] = 'Data Petugas';
-        $data['petugas'] = $this->model('PetugasModel')->getAllPetugasExceptMinId();
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Cek apakah ada kata kunci pencarian di session
+        $key = $_SESSION['search_key'] ?? '';
+
+        if (!empty($key)) {
+            // Ambil data petugas hasil pencarian dengan pagination
+            $data['petugas'] = $this->model('PetugasModel')->cariPetugasPagination($key, $limit, $offset);
+
+            // Hitung total data hasil pencarian untuk pagination
+            $totalData = $this->model('PetugasModel')->getJumlahCariPetugas($key);
+        } else {
+            // Ambil semua data petugas dengan pagination
+            $data['petugas'] = $this->model('PetugasModel')->getPetugasPagination($limit, $offset);
+
+            // Hitung total data petugas untuk pagination
+            $totalData = $this->model('PetugasModel')->getJumlahPetugas();
+        }
+
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
         $this->view('templates/header', $data);
         $this->view('templates/sidebar', $data);
         $this->view('petugas/index', $data);
@@ -23,13 +49,38 @@ class Petugas extends Controller {
     public function cari()
     {
         $key = htmlspecialchars($_POST['key'] ?? '');
+        $_SESSION['search_key'] = $key; // Simpan kata kunci pencarian di session
+
         $data['title'] = 'Data Petugas';
-        $data['petugas'] = $this->model('PetugasModel')->cariPetugas($key);
-        $data['key'] = $key;
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Ambil data petugas hasil pencarian dengan pagination
+        $data['petugas'] = $this->model('PetugasModel')->cariPetugasPagination($key, $limit, $offset);
+
+        // Hitung total data hasil pencarian untuk pagination
+        $totalData = $this->model('PetugasModel')->getJumlahCariPetugas($key);
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
         $this->view('templates/header', $data);
         $this->view('templates/sidebar', $data);
         $this->view('petugas/index', $data);
         $this->view('templates/footer');
+    }
+
+    public function reset()
+    {
+        // Hapus session pencarian
+        unset($_SESSION['search_key']);
+
+        // Redirect ke halaman petugas
+        header('location: ' . base_url . '/petugas');
+        exit;
     }
 
     public function edit($id)

@@ -17,28 +17,62 @@ class Buku extends Controller {
     } 
 
     public function index()
-	{
-		$orderBy = $_GET['orderBy'] ?? 'judul'; // Default sorting by 'judul'
-		$orderDirection = $_GET['orderDirection'] ?? 'ASC'; // Default order direction
+    {
+        $data['title'] = 'Data Buku';
 
-		$data['title'] = 'Data Buku';
-		$data['buku'] = $this->model('BukuModel')->getAllBuku($orderBy, $orderDirection);
-        #$data['jumlah_buku'] = $this->model('BukuModel')->getJumlahBuku();
-		$this->view('templates/header', $data);
-		$this->view('templates/sidebar', $data);
-		$this->view('buku/index', $data);
-		$this->view('templates/footer');
-	}
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Cek apakah ada kata kunci pencarian di session
+        $key = $_SESSION['search_key'] ?? '';
+
+        if (!empty($key)) {
+            // Ambil data buku hasil pencarian dengan pagination
+            $data['buku'] = $this->model('BukuModel')->cariBukuPagination($key, $limit, $offset);
+
+            // Hitung total data hasil pencarian untuk pagination
+            $totalData = $this->model('BukuModel')->getJumlahCariBuku($key);
+        } else {
+            // Ambil semua data buku dengan pagination
+            $data['buku'] = $this->model('BukuModel')->getBukuPagination($limit, $offset);
+
+            // Hitung total data buku untuk pagination
+            $totalData = $this->model('BukuModel')->getJumlahBuku();
+        }
+
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
+        $this->view('templates/header', $data);
+        $this->view('templates/sidebar', $data);
+        $this->view('buku/index', $data);
+        $this->view('templates/footer');
+    }
 
     public function cari()
     {
-        // Validasi input pencarian
-        $key = isset($_POST['key']) ? htmlspecialchars($_POST['key']) : '';
-        
+        $key = htmlspecialchars($_POST['key'] ?? '');
+        $_SESSION['search_key'] = $key; // Simpan kata kunci pencarian di session
+
         $data['title'] = 'Data Buku';
-        $data['buku'] = $this->model('BukuModel')->cariBuku($key);
-        $data['key'] = $key;
-        #$data['jumlah_buku'] = $this->model('BukuModel')->getJumlahBuku();
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Ambil data buku hasil pencarian dengan pagination
+        $data['buku'] = $this->model('BukuModel')->cariBukuPagination($key, $limit, $offset);
+
+        // Hitung total data hasil pencarian untuk pagination
+        $totalData = $this->model('BukuModel')->getJumlahCariBuku($key);
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
         $this->view('templates/header', $data);
         $this->view('templates/sidebar', $data);
         $this->view('buku/index', $data);
@@ -110,9 +144,21 @@ class Buku extends Controller {
     }
 
     public function updateBuku()
-    {	
+    {
         // Validasi input
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            if (!isset($_POST['csrf_token'])) {
+                Flasher::setMessage('Error', 'Token CSRF tidak ditemukan.', 'danger');
+                header('location: ' . base_url . '/buku');
+                exit;
+            }
+
+            if ($_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+                Flasher::setMessage('Error', 'Token CSRF tidak valid.', 'danger');
+                header('location: ' . base_url . '/buku');
+                exit;
+            }
+
             $input = [
                 'id' => intval($_POST['id'] ?? 0),
                 'judul' => htmlspecialchars($_POST['judul'] ?? ''),
@@ -122,15 +168,30 @@ class Buku extends Controller {
                 'stok' => intval($_POST['stok'] ?? 0)
             ];
 
-            if ($this->model('BukuModel')->updateDataBuku($input) > 0) {
-                Flasher::setMessage('Berhasil', 'diupdate', 'success');
-                header('location: ' . base_url . '/buku');
-                exit;			
+            // Ambil data buku saat ini
+            $bukuSaatIni = $this->model('BukuModel')->getBukuById($input['id']);
+
+            // Cek apakah ada perubahan data
+            if (
+                $bukuSaatIni['judul'] === $input['judul'] &&
+                $bukuSaatIni['penulis'] === $input['penulis'] &&
+                $bukuSaatIni['kategori_id'] === $input['kategori_id'] &&
+                $bukuSaatIni['tahun_terbit'] === $input['tahun_terbit'] &&
+                $bukuSaatIni['stok'] === $input['stok']
+            ) {
+                // Jika tidak ada perubahan, tampilkan pesan berhasil
+                Flasher::setMessage('Berhasil', 'diupdate (tidak ada perubahan)', 'success');
             } else {
-                Flasher::setMessage('Gagal', 'diupdate', 'danger');
-                header('location: ' . base_url . '/buku');
-                exit;	
+                // Jika ada perubahan, lakukan update
+                if ($this->model('BukuModel')->updateDataBuku($input) > 0) {
+                    Flasher::setMessage('Berhasil', 'diupdate', 'success');
+                } else {
+                    Flasher::setMessage('Gagal', 'diupdate', 'danger');
+                }
             }
+
+            header('location: ' . base_url . '/buku');
+            exit;
         } else {
             Flasher::setMessage('Error', 'Metode request tidak valid.', 'danger');
             header('location: ' . base_url . '/buku');
@@ -147,6 +208,13 @@ class Buku extends Controller {
             exit;
         }
 
+        // Cek apakah Buku terikat dengan peminjaman
+        if ($this->model('BukuModel')->isBukuTerpakai($id)) {
+            Flasher::setMessage('Gagal', 'Buku tidak dapat dihapus karena terikat dengan data peminjaman.', 'danger');
+            header('location: ' . base_url . '/buku');
+            exit;
+        }
+
         if ($this->model('BukuModel')->deleteBuku($id) > 0) {
             Flasher::setMessage('Berhasil', 'dihapus', 'success');
             header('location: ' . base_url . '/buku');
@@ -156,5 +224,15 @@ class Buku extends Controller {
             header('location: ' . base_url . '/buku');
             exit;	
         }
+    }
+
+    public function reset()
+    {
+        // Hapus session pencarian
+        unset($_SESSION['search_key']);
+
+        // Redirect ke halaman buku
+        header('location: ' . base_url . '/buku');
+        exit;
     }
 }

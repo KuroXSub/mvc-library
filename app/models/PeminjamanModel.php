@@ -62,4 +62,47 @@ class PeminjamanModel {
         $this->db->query('SELECT COUNT(*) as jumlah FROM ' . $this->table);
         return $this->db->single()['jumlah'];
     }
+
+    public function getPeminjamanPagination($limit, $offset)
+    {
+        $query = "SELECT peminjaman.*, mahasiswa.nama AS nama_mahasiswa, buku.judul AS judul_buku, petugas.nama AS nama_petugas 
+                FROM peminjaman 
+                JOIN mahasiswa ON mahasiswa.id = peminjaman.mahasiswa_id 
+                JOIN buku ON buku.id = peminjaman.buku_id 
+                JOIN petugas ON petugas.id = peminjaman.petugas_id 
+                LIMIT :limit OFFSET :offset";
+        $this->db->query($query);
+        $this->db->bind('limit', $limit);
+        $this->db->bind('offset', $offset);
+        return $this->db->resultSet();
+    }
+
+    public function cariPeminjamanPagination($key, $limit, $offset)
+    {
+        $query = "SELECT peminjaman.*, mahasiswa.nama AS nama_mahasiswa, buku.judul AS judul_buku, petugas.nama AS nama_petugas 
+                FROM peminjaman 
+                JOIN mahasiswa ON mahasiswa.id = peminjaman.mahasiswa_id 
+                JOIN buku ON buku.id = peminjaman.buku_id 
+                JOIN petugas ON petugas.id = peminjaman.petugas_id 
+                WHERE mahasiswa.nama LIKE :key OR buku.judul LIKE :key OR petugas.nama LIKE :key 
+                LIMIT :limit OFFSET :offset";
+        $this->db->query($query);
+        $this->db->bind('key', "%$key%");
+        $this->db->bind('limit', $limit);
+        $this->db->bind('offset', $offset);
+        return $this->db->resultSet();
+    }
+
+    public function getJumlahCariPeminjaman($key)
+    {
+        $query = "SELECT COUNT(*) as jumlah 
+                FROM peminjaman 
+                JOIN mahasiswa ON mahasiswa.id = peminjaman.mahasiswa_id 
+                JOIN buku ON buku.id = peminjaman.buku_id 
+                JOIN petugas ON petugas.id = peminjaman.petugas_id 
+                WHERE mahasiswa.nama LIKE :key OR buku.judul LIKE :key OR petugas.nama LIKE :key";
+        $this->db->query($query);
+        $this->db->bind('key', "%$key%");
+        return $this->db->single()['jumlah'];
+    }
 }

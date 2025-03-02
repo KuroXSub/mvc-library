@@ -13,11 +13,74 @@ class Peminjaman extends Controller {
     public function index()
     {
         $data['title'] = 'Data Peminjaman';
-        $data['peminjaman'] = $this->model('PeminjamanModel')->getAllPeminjaman();
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Cek apakah ada kata kunci pencarian di session
+        $key = $_SESSION['search_key'] ?? '';
+
+        if (!empty($key)) {
+            // Ambil data peminjaman hasil pencarian dengan pagination
+            $data['peminjaman'] = $this->model('PeminjamanModel')->cariPeminjamanPagination($key, $limit, $offset);
+
+            // Hitung total data hasil pencarian untuk pagination
+            $totalData = $this->model('PeminjamanModel')->getJumlahCariPeminjaman($key);
+        } else {
+            // Ambil semua data peminjaman dengan pagination
+            $data['peminjaman'] = $this->model('PeminjamanModel')->getPeminjamanPagination($limit, $offset);
+
+            // Hitung total data peminjaman untuk pagination
+            $totalData = $this->model('PeminjamanModel')->getJumlahPeminjaman();
+        }
+
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
         $this->view('templates/header', $data);
         $this->view('templates/sidebar', $data);
         $this->view('peminjaman/index', $data);
         $this->view('templates/footer');
+    }
+
+    public function cari()
+    {
+        $key = htmlspecialchars($_POST['key'] ?? '');
+        $_SESSION['search_key'] = $key; // Simpan kata kunci pencarian di session
+
+        $data['title'] = 'Data Peminjaman';
+
+        // Ambil nomor halaman dari URL, default ke 1 jika tidak ada
+        $page = isset($_GET['page']) ? intval($_GET['page']) : 1;
+        $limit = 10; // Jumlah data per halaman
+        $offset = ($page - 1) * $limit; // Hitung offset
+
+        // Ambil data peminjaman hasil pencarian dengan pagination
+        $data['peminjaman'] = $this->model('PeminjamanModel')->cariPeminjamanPagination($key, $limit, $offset);
+
+        // Hitung total data hasil pencarian untuk pagination
+        $totalData = $this->model('PeminjamanModel')->getJumlahCariPeminjaman($key);
+        $data['totalPages'] = ceil($totalData / $limit); // Hitung total halaman
+        $data['currentPage'] = $page; // Simpan halaman saat ini
+        $data['key'] = $key; // Simpan kata kunci pencarian
+
+        $this->view('templates/header', $data);
+        $this->view('templates/sidebar', $data);
+        $this->view('peminjaman/index', $data);
+        $this->view('templates/footer');
+    }
+
+    public function reset()
+    {
+        // Hapus session pencarian
+        unset($_SESSION['search_key']);
+
+        // Redirect ke halaman peminjaman
+        header('location: ' . base_url . '/peminjaman');
+        exit;
     }
 
     public function tambah() 

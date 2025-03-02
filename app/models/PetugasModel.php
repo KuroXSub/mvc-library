@@ -60,6 +60,17 @@ class PetugasModel {
         return $this->db->rowCount();
     }
 
+    public function isPetugasTerpakai($id)
+    {
+        // Query untuk mengecek apakah petugas terikat dengan peminjaman
+        $this->db->query('SELECT COUNT(*) as jumlah FROM peminjaman WHERE petugas_id = :id');
+        $this->db->bind('id', intval($id));
+        $result = $this->db->single();
+
+        // Jika jumlah peminjaman yang menggunakan petugas ini lebih dari 0, kembalikan true
+        return $result['jumlah'] > 0;
+    }
+
     public function getMinIdPetugas()
     {
         $this->db->query('SELECT MIN(id) as min_id FROM ' . $this->table);
@@ -71,5 +82,39 @@ class PetugasModel {
         $this->db->query("SELECT * FROM " . $this->table . " WHERE nama LIKE :key AND id != (SELECT MIN(id) FROM " . $this->table . ")");
         $this->db->bind('key', "%$key%");
         return $this->db->resultSet();
+    }
+
+    public function getPetugasPagination($limit, $offset)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE id != (SELECT MIN(id) FROM " . $this->table . ") LIMIT :limit OFFSET :offset";
+        $this->db->query($query);
+        $this->db->bind('limit', $limit);
+        $this->db->bind('offset', $offset);
+        return $this->db->resultSet();
+    }
+
+    public function cariPetugasPagination($key, $limit, $offset)
+    {
+        $query = "SELECT * FROM " . $this->table . " WHERE nama LIKE :key AND id != (SELECT MIN(id) FROM " . $this->table . ") LIMIT :limit OFFSET :offset";
+        $this->db->query($query);
+        $this->db->bind('key', "%$key%");
+        $this->db->bind('limit', $limit);
+        $this->db->bind('offset', $offset);
+        return $this->db->resultSet();
+    }
+
+    public function getJumlahPetugas()
+    {
+        $query = "SELECT COUNT(*) as jumlah FROM " . $this->table . " WHERE id != (SELECT MIN(id) FROM " . $this->table . ")";
+        $this->db->query($query);
+        return $this->db->single()['jumlah'];
+    }
+
+    public function getJumlahCariPetugas($key)
+    {
+        $query = "SELECT COUNT(*) as jumlah FROM " . $this->table . " WHERE nama LIKE :key AND id != (SELECT MIN(id) FROM " . $this->table . ")";
+        $this->db->query($query);
+        $this->db->bind('key', "%$key%");
+        return $this->db->single()['jumlah'];
     }
 }
