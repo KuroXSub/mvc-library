@@ -7,13 +7,13 @@
 </div>
 <!-- ./wrapper -->
 
-<!-- jQuery -->
-<script src="<?= base_url; ?>/plugins/jquery/jquery.min.js"></script>
-<!-- Bootstrap 4 -->
-<script src="<?= base_url; ?>/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-<!-- AdminLTE App -->
-<script src="<?= base_url; ?>/dist/js/adminlte.min.js"></script>
-<!-- AdminLTE for demo purposes -->
+<!-- jQuery CDN -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Bootstrap 4 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- AdminLTE App CDN -->
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2.0/dist/js/adminlte.min.js"></script>
+<!-- AdminLTE for demo purposes (opsional) -->
 <script src="<?= base_url; ?>/dist/js/demo.js"></script>
 </body>
 </html>
